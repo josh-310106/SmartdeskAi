@@ -1,0 +1,101 @@
+ SmartDesk AI — Project Prompts
+
+
+## PROMPT 1 — Project Foundation (Base Build)
+
+I'm building a Python + Streamlit application called **SmartDesk AI** — an autonomous IT Service Management (ITSM) system. Here is the complete working codebase. Understand it fully before I start requesting features.
+
+**What it does:**
+- Employees submit IT issues by uploading audio recordings
+- Audio is transcribed using **Groq Whisper API** (`whisper-large-v3`)
+- Transcripts are parsed by **LLaMA-3.1-8b-instant** via Groq to extract structured ticket fields
+- Tickets are stored in a **SQLite database** and displayed on a management dashboard
+
+**Stack:**
+- Frontend: `Streamlit` (single `app.py` with sidebar page routing)
+- AI: `Groq` SDK — Whisper for transcription, LLaMA for extraction
+- Database: `SQLite` via `database.py` (CRUD, analytics helpers, schema migration)
+- Config: `config.py` loaded from `.env` via `python-dotenv`
+- Mock mode: `USE_MOCK_SERVICES=True` bypasses all API calls for local testing
+
+**Pages (sidebar navigation):**
+1. **Home** — KPI dashboard with ticket stats, charts, recent activity
+2. **Ticket Generator** — 3-step pipeline: Upload audio → Transcribe → Extract & create ticket
+3. **Database** — Full ticket table with search, filters, status updates, assignment, and resolution
+
+**Extracted ticket fields (from LLM JSON output):**
+`employee_name`, `employee_id`, `mobile_number`, `email`, `title`, `description`, `category`, `priority`, `assigned_department`, `sentiment`, `ticket_summary`, `suggested_resolution`
+
+**Supported categories / departments:**
+Networking, Hardware, Email & Collaboration, Application Support, Infrastructure, Cybersecurity, Management, Accounts (each maps to a named team)
+
+**Priority rules:** Critical → major outage/security; High → team blocked; Medium → single user; Low → minor/info request
+
+**Status lifecycle:** `Pending` → `Work In Progress` → `Resolved`
+
+**Mock transcripts:** 8 pre-written transcripts covering each department, selected by filename keywords (e.g. "vpn" → networking transcript, "laptop" → hardware transcript)
+
+The app has a dark glassmorphism UI theme using custom CSS injected via `st.markdown`, Inter font, and animated fade-in cards.
+
+
+## PROMPT 2 — Add Ticket Edit Modal
+
+I want to be able to edit a ticket's fields directly from the Database page. Right now I can only update the status and assign a worker. Can you add an **Edit button** next to each ticket row that opens an expander where I can modify the title, description, priority, category, assigned department, and sentiment? After saving, it should update the DB and refresh the table.
+
+
+## PROMPT 3 — Export Tickets to CSV
+
+On the Database page, add an **Export to CSV** button that downloads all currently filtered/displayed tickets as a `.csv` file. The filename should include today's date like `tickets_2025-06-09.csv`. Use `st.download_button` for this.
+
+
+## PROMPT 4 — Add a Notes / Comments Field on Tickets
+
+I want to add a **resolution notes** field that engineers can fill in when they resolve a ticket. In the Database page, when a ticket's status is set to "Resolved", show a text area where the engineer can type what they did to fix the issue. Save this as a `resolution_notes` column in the DB. Also show this field in the ticket detail view if it's not empty.
+
+
+## PROMPT 5 — Ticket Search Improvements
+
+The search on the Database page only does a basic text match. I want to improve it with **dropdown filters** for:
+- Status (All / Pending / Work In Progress / Resolved)
+- Priority (All / Critical / High / Medium / Low)
+- Department (All + the 8 teams)
+- Date range (from date – to date)
+
+These filters should stack on top of each other and apply in real time when changed. Keep the existing text search bar too.
+
+
+## PROMPT 6 — Analytics Charts on Home Page
+
+The Home page shows KPI numbers but I want richer visuals. Add these **charts using `st.bar_chart` or `plotly`**:
+1. Tickets by priority (bar chart)
+2. Tickets by department (horizontal bar)
+3. Ticket volume over time — by created date (line chart, grouped by day)
+4. Average resolution time per department (bar chart — only for resolved tickets)
+
+Pull all data from the existing `database.py` helper functions.
+
+
+## PROMPT 7 — Audio Recording Directly in Browser
+
+Right now users can only upload a pre-recorded file. I want to add an option to **record audio directly in the browser** on the Ticket Generator page using `st.audio_input` (available in Streamlit 1.31+) or a JS audio recording widget. After recording, it should feed into the same transcription pipeline as an uploaded file.
+
+
+## PROMPT 8 — Ticket Auto-Refresh on Database Page
+
+On the Database page, add an **Auto-Refresh toggle** that, when turned on, refreshes the ticket table every 30 seconds automatically using `st.rerun()` + `time.sleep`. Show the last refreshed timestamp near the top of the page. The toggle should persist across reruns using `st.session_state`.
+
+
+## PROMPT 9 — Duplicate Ticket Detection
+
+Whenever a user tries to create a new ticket, the system should first check whether a similar ticket has already been raised. The comparison should be done using both the ticket title and description, and it should be smart enough to identify similar text even if the wording is slightly different.
+
+If the system finds an existing open ticket with a high similarity (for example, more than 80%), it should not create the ticket immediately. Instead, show a warning message to the user saying something like:
+
+A similar ticket (TKT-0042) may already exist. Do you still want to create this one.
+
+The user should then be given two choices:
+
+1.Confirm – Continue creating the new ticket.
+2.Cancel – Stop the creation process and allow the user to review the details.
+
+
